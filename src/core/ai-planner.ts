@@ -164,7 +164,7 @@ export class AiMissionPlanner{
     if(!["L1_READ","L2_ANALYZE","L3_MODIFY","L4_EXECUTE","L5_CRITICAL"].includes(String(v.requiredPermission)))throw new Error("Invalid mission permission.");
     const steps=Array.isArray(v.steps)?v.steps.filter(x=>x&&typeof x==="object"&&typeof (x as Record<string,unknown>).description==="string").map(x=>({description:String((x as Record<string,unknown>).description)})):[];
     const successCriteria=Array.isArray(v.successCriteria)?v.successCriteria.filter(x=>typeof x==="string").map(String):[];
-    const hasRuntimeStatus=tools.some(tool=>tool.tool==="runtime.status");
+    const hasRuntimeStatus=catalog.some(tool=>tool.name==="runtime.status");
     const normalizedSuccessCriteria=hasRuntimeStatus
       ? ["result.tool === \"runtime.status\"","result.ok === true","result.data.ready === true","result.data.providers.length > 0"]
       : successCriteria;
