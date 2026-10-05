@@ -55,7 +55,7 @@ export class VerificationEngine {
       const matched=typeof actual==="string"&&typeof expected.value==="string"?actual.includes(expected.value):Array.isArray(actual)?actual.some(item=>this.same(item,expected.value)):false;
       return{supported:true,matched,reason:matched?"":`Success criterion failed: ${text}`};
     }
-    const length=/^result(?:\.([A-Za-z_$][\w$]*))?\.(?:length|count)\s*(===|==|!==|!=|>=|<=|>|<)\s*(\d+)$/i.exec(text);
+    const toolSuccess=/^the call to ([A-Za-z0-9_.-]+) should execute successfully\.?$/i.exec(text);\n    if(toolSuccess){\n      const expectedTool=toolSuccess[1];\n      const actualTool=this.readPath(result,"tool");\n      const ok=this.readPath(result,"ok");\n      const toolMatches=actualTool===undefined||actualTool===expectedTool;\n      const matched=ok===true&&toolMatches;\n      const reason=matched?"":actualTool!==undefined&&actualTool!==expectedTool?`Success criterion failed: ${text} (actual tool=${JSON.stringify(actualTool)})`:ok===false?`Success criterion failed: ${text} (tool returned ok=false)`: `Success criterion failed: ${text} (tool did not report ok=true)`;\n      return{supported:true,matched,reason};\n    }\n    const length=/^result(?:\.([A-Za-z_$][\w$]*))?\.(?:length|count)\s*(===|==|!==|!=|>=|<=|>|<)\s*(\d+)$/i.exec(text);
     if(length){
       const actual=this.readPath(result,length[1]??"");
       const size=typeof actual==="string"||Array.isArray(actual)?actual.length:undefined;
