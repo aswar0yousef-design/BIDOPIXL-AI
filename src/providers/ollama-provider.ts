@@ -3,7 +3,7 @@ import type {ModelResponse,ModelRequest} from "../models/inference.js";
 import type {ModelDefinition} from "../models/registry.js";
 
 interface OllamaTagResponse{models?:Array<{name?:string;model?:string}>}
-export interface OllamaProviderOptions{baseUrl?:string;timeoutMs?:number;fetcher?:typeof fetch;autoSelectInstalledModel?:boolean;}
+export interface OllamaProviderOptions{baseUrl?:string;timeoutMs?:number;healthTimeoutMs?:number;fetcher?:typeof fetch;autoSelectInstalledModel?:boolean;}
 
 function fallbackModel(requested:string,installed:string[]){
  const exact=installed.find(name=>name===requested);if(exact)return exact;
@@ -16,8 +16,10 @@ export function createOllamaProvider(options:OllamaProviderOptions={}){
  const root=(options.baseUrl??"http://127.0.0.1:11434").replace(/\/$/,"");
  const fetcher=options.fetcher??fetch;
  const autoSelect=options.autoSelectInstalledModel===true;
+ const timeoutMs=options.timeoutMs??Number(process.env.BIDOPIXL_OLLAMA_TIMEOUT_MS??120000);
+ const healthTimeoutMs=options.healthTimeoutMs??Number(process.env.BIDOPIXL_OLLAMA_HEALTH_TIMEOUT_MS??5000);
  const baseProvider=new HttpModelProvider({
-  name:"ollama",baseUrl:root+"/api/chat",healthUrl:root+"/api/tags",timeoutMs:options.timeoutMs??30000,fetcher,
+  name:"ollama",baseUrl:root+"/api/chat",healthUrl:root+"/api/tags",timeoutMs,healthTimeoutMs,fetcher,
   buildBody:(model,request)=>({model:model.id,messages:[{role:"user",content:typeof request.input==="string"?request.input:request.input.filter(part=>part.type==="text").map(part=>part.text).join("\n"),...(typeof request.input==="string"?{}:{images:request.input.filter(part=>part.type==="image").map(part=>part.image.base64)})}],stream:false,...((request.capability==="reasoning"||request.capability==="vision")?{format:"json"}:{})}),
   parseResponse:(body,model):ModelResponse=>{
    const data=body as {response?:string;message?:{content?:string};prompt_eval_count?:number;eval_count?:number};
