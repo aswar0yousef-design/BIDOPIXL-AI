@@ -1,8 +1,8 @@
-# LayanX AI
+# BIDOPIXL-AI
 
-LayanX is a security-first autonomous AI runtime foundation designed **currently as a local-first, single-device system**.
+BIDOPIXL-AI is a security-first autonomous AI runtime foundation designed **currently as a local-first, single-device system**.
 
-The present target is to run the full runtime on the user's own computer with local storage and local AI providers such as Ollama. Multi-tenant SaaS, remote hosting, and cloud deployment are future evolution paths, not current runtime requirements.
+The present target is to run the full runtime on the user's own computer for this independent BIDOPIXL-AI installation with local storage and local AI providers such as Ollama. Multi-tenant SaaS, remote hosting, and cloud deployment are future evolution paths, not current runtime requirements.
 
 ## Current architecture
 
@@ -98,9 +98,22 @@ npm run layanx -- health
 - PostgreSQL is an optional persistence backend; it is not required for the current local-first target.
 - Runtime snapshots remain validated by `RuntimePersistence` before commit.
 
-### Local AI
+### BIDOPIXL-AI local model profile
 
-Ollama is the default local provider path when enabled. The default model is configured by the provider configuration and can be changed through environment variables.
+This build is local-first and is preconfigured for the Ollama models intended for BIDOPIXL-AI:
+
+- Fast: `qwen3.5:0.8b`
+- General: `gemma4:latest`
+- Coding: `qwen2.5-coder:7b`
+- Advanced coding/reasoning: `deepseek-coder-v2:16b`
+- Optional Ollama cloud coding: `kimi-k2.7-code:cloud`
+- Optional Ollama cloud reasoning: `glm-5.2:cloud`
+
+The first four models are the local-first profile. Cloud Ollama models are disabled by default and require both `LAYANX_AI_MODE=hybrid` (or `cloud`) and `BIDOPIXL_OLLAMA_CLOUD_ENABLED=true`. Model names can be overridden with the `BIDOPIXL_*_MODEL` environment variables.
+
+Ollama is the default local provider path when enabled. The model router keeps local models preferred and uses provider health/failover before execution.
+
+No production cloud deployment is required to use the current system.
 
 No production cloud deployment is required to use the current system.
 
