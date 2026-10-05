@@ -55,7 +55,7 @@ export class VerificationEngine {
       const matched=typeof actual==="string"&&typeof expected.value==="string"?actual.includes(expected.value):Array.isArray(actual)?actual.some(item=>this.same(item,expected.value)):false;
       return{supported:true,matched,reason:matched?"":`Success criterion failed: ${text}`};
     }
-    const toolCalled=/^the `([A-Za-z0-9_.-]+)` tool was successfully called\\.?$/i.exec(text);
+    const toolCalled=/^the `([A-Za-z0-9_.-]+)` tool was successfully called\.?$/i.exec(text);
     if(toolCalled){
       const expectedTool=toolCalled[1];
       const actualTool=this.readPath(result,"tool");
@@ -64,7 +64,7 @@ export class VerificationEngine {
       const reason=matched?"":actualTool!==expectedTool?`Success criterion failed: ${text} (actual tool=${JSON.stringify(actualTool)})`: `Success criterion failed: ${text} (tool did not report ok=true)`;
       return{supported:true,matched,reason};
     }
-    const runtimeReturned=/^the observed runtime status is returned to the user\\.?$/i.exec(text);
+    const runtimeReturned=/^the observed runtime status is returned to the user\.?$/i.exec(text);
     if(runtimeReturned){
       const actualTool=this.readPath(result,"tool");
       const ok=this.readPath(result,"ok");
