@@ -50,7 +50,7 @@ export function loadProviderConfig(env:NodeJS.ProcessEnv=process.env):ProviderRu
 export function configureProviders(config=loadProviderConfig(),models=new ModelRegistry(),providers=new ModelProviderRegistry()){
  const allowLocal=config.mode==="local"||config.mode==="hybrid";const allowCloud=config.mode==="cloud"||config.mode==="hybrid";
  if(config.ollama.enabled&&allowLocal){
-   providers.register(createOllamaProvider({baseUrl:config.ollama.baseUrl,autoSelectInstalledModel:true}));
+   providers.register(createOllamaProvider({baseUrl:config.ollama.baseUrl,autoSelectInstalledModel:false}));
    const localModels=[
     {id:config.bidopixl.general,capabilities:["chat","reasoning"] as const,priority:1,qualityScore:78,latencyClass:"balanced" as const,tags:["bidopixl","general","local"]},
     {id:config.bidopixl.coding,capabilities:["chat","coding"] as const,priority:2,qualityScore:84,latencyClass:"balanced" as const,tags:["bidopixl","coding","local"]},
