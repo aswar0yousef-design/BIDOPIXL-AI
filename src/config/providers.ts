@@ -13,6 +13,7 @@ export type ProviderMode="local"|"cloud"|"hybrid";
 export interface ProviderRuntimeConfig{
  mode:ProviderMode;
  ollama:{enabled:boolean;baseUrl:string;model:string;visionModel:string};
+ bidopixl:{fast:string;general:string;coding:string;advancedCoding:string;cloudCoding:string;cloudReasoning:string;cloudEnabled:boolean};
  openai:{enabled:boolean;apiKey?:string;baseUrl:string;healthUrl:string;model:string};
  anthropic:{enabled:boolean;apiKey?:string;baseUrl:string;healthUrl:string;model:string};
  gemini:{enabled:boolean;apiKey?:string;baseUrl:string;healthUrl:string;model:string};
