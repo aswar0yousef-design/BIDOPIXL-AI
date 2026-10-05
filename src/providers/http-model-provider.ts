@@ -7,6 +7,7 @@ export interface HttpModelProviderOptions{
  healthUrl?:string;
  apiKey?:string;
  timeoutMs?:number;
+ healthTimeoutMs?:number;
  fetcher?:typeof fetch;
  headers?:Record<string,string>;
  buildUrl?:(model:ModelDefinition,request:ModelRequest)=>string;
@@ -25,7 +26,7 @@ export class HttpModelProvider implements ModelProviderAdapter{
  async health(){
   const started=Date.now();
   const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),Math.max(1,this.options.timeoutMs??5000));
+  const timer=setTimeout(()=>controller.abort(),Math.max(1,this.options.healthTimeoutMs??5000));
   try{
    const response=await this.fetcher(this.options.buildHealthUrl?.()??this.options.healthUrl??this.options.baseUrl,{method:"GET",redirect:"error",signal:controller.signal,headers:this.headers()});
    return{provider:this.name,available:response.ok,latencyMs:Date.now()-started,reason:response.ok?undefined:"HTTP "+response.status,updatedAt:new Date().toISOString()};
