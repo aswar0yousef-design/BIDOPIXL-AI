@@ -4,7 +4,12 @@ const calls:string[]=[];
 const fetcher=async (input:RequestInfo|URL,init?:RequestInit)=>{
   const url=String(input); calls.push((init?.method??"GET")+" "+url);
   if(url.endsWith("/api/tags"))return new Response(JSON.stringify({models:[{name:"gemma4:latest"},{name:"qwen2.5-coder:7b"}]}),{status:200,headers:{"content-type":"application/json"}});
-  if(url.endsWith("/api/chat"))return new Response(JSON.stringify({message:{content:"ok"}}),{status:200,headers:{"content-type":"application/json"}});
+  if(url.endsWith("/api/chat")){
+    const body=JSON.parse(String(init?.body??"{}")) as {model?:string};
+    if(body.model!=="gemma4:latest"&&body.model!=="qwen2.5-coder:7b")
+      return new Response(JSON.stringify({error:"model '"+String(body.model)+"' not found"}),{status:404,headers:{"content-type":"application/json"}});
+    return new Response(JSON.stringify({message:{content:"ok"}}),{status:200,headers:{"content-type":"application/json"}});
+  }
   return new Response("not found",{status:404});
 };
 const provider=createOllamaProvider({baseUrl:"http://ollama.test",fetcher,autoSelectInstalledModel:false});
