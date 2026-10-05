@@ -55,6 +55,27 @@ export class VerificationEngine {
       const matched=typeof actual==="string"&&typeof expected.value==="string"?actual.includes(expected.value):Array.isArray(actual)?actual.some(item=>this.same(item,expected.value)):false;
       return{supported:true,matched,reason:matched?"":`Success criterion failed: ${text}`};
     }
+    const runtimeRetrieve=/^successfully retrieve and return the current runtime status information using the `([A-Za-z0-9_.-]+)` tool\\.?$/i.exec(text);
+    if(runtimeRetrieve){
+      const expectedTool=runtimeRetrieve[1];
+      const actualTool=this.readPath(result,"tool");
+      const ok=this.readPath(result,"ok");
+      const data=this.readPath(result,"data");
+      const ready=this.readPath(data,"ready");
+      const providers=this.readPath(data,"providers");
+      const matched=ok===true&&actualTool===expectedTool&&ready===true&&Array.isArray(providers)&&providers.length>0;
+      const reason=matched?"":actualTool!==expectedTool?`Success criterion failed: ${text} (actual tool=${JSON.stringify(actualTool)})`:ok!==true?`Success criterion failed: ${text} (tool did not report ok=true)`:ready!==true?`Success criterion failed: ${text} (runtime is not ready)`:!Array.isArray(providers)||providers.length===0?`Success criterion failed: ${text} (no configured providers were reported)`: `Success criterion failed: ${text}`;
+      return{supported:true,matched,reason};
+    }
+    const runtimeHealth=/^the observed output confirms the operational health and configured providers\\.?$/i.exec(text);
+    if(runtimeHealth){
+      const data=this.readPath(result,"data");
+      const ready=this.readPath(data,"ready");
+      const providers=this.readPath(data,"providers");
+      const matched=ready===true&&Array.isArray(providers)&&providers.length>0;
+      const reason=matched?"":ready!==true?`Success criterion failed: ${text} (runtime is not ready)`:!Array.isArray(providers)||providers.length===0?`Success criterion failed: ${text} (no configured providers were reported)`: `Success criterion failed: ${text}`;
+      return{supported:true,matched,reason};
+    }
     const toolSuccess=/^the call to ([A-Za-z0-9_.-]+) should execute successfully\.?$/i.exec(text);
     if(toolSuccess){
       const expectedTool=toolSuccess[1];
