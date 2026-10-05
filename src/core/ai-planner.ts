@@ -94,6 +94,7 @@ export class AiMissionPlanner{
       "tools must be an array of objects with tool, action, permission, reason, and optional JSON payload.",
       "Only choose tools from the supplied catalog. Do not invent tool names or actions.",
       "For project.verify use payload {script:\"test\"}, {script:\"typecheck\"}, or {script:\"build\"} according to the goal. For terminal.exec include a safe allowlisted command payload.",
+      "Success criteria must use only machine-verifiable forms: mission exists; mission has goal; mission has execution plan; done; echo; approved; result.<path> ===|==|!==|!= <literal>; result.<path> >=|<=|>|< <number>; result.<path> contains <literal>; result.<path>.length|count <comparison> <number>. Do not write prose criteria.";
       "For computer-use goals, prefer desktop.screenshot before any coordinate-based mouse or keyboard action unless the user supplied exact coordinates.",
       "Do not request secrets or bypass security controls.",
       "Available tool catalog: "+JSON.stringify(catalog),
@@ -163,9 +164,13 @@ export class AiMissionPlanner{
     if(!["L1_READ","L2_ANALYZE","L3_MODIFY","L4_EXECUTE","L5_CRITICAL"].includes(String(v.requiredPermission)))throw new Error("Invalid mission permission.");
     const steps=Array.isArray(v.steps)?v.steps.filter(x=>x&&typeof x==="object"&&typeof (x as Record<string,unknown>).description==="string").map(x=>({description:String((x as Record<string,unknown>).description)})):[];
     const successCriteria=Array.isArray(v.successCriteria)?v.successCriteria.filter(x=>typeof x==="string").map(String):[];
+    const hasRuntimeStatus=tools.some(tool=>tool.tool==="runtime.status");
+    const normalizedSuccessCriteria=hasRuntimeStatus
+      ? ["result.tool === \"runtime.status\"","result.ok === true","result.data.ready === true","result.data.providers.length > 0"]
+      : successCriteria;
     if(!steps.length||!successCriteria.length||typeof v.stopCondition!=="string"||!v.stopCondition.trim())throw new Error("Incomplete mission plan.");
     const tools=this.parseTools(v.tools,catalog,v.requiredPermission as PermissionLevel);
-    return{risk:v.risk as PlannedMission["risk"],requiredPermission:v.requiredPermission as PermissionLevel,steps,successCriteria,stopCondition:String(v.stopCondition),tools};
+    return{risk:v.risk as PlannedMission["risk"],requiredPermission:v.requiredPermission as PermissionLevel,steps,successCriteria:normalizedSuccessCriteria,stopCondition:String(v.stopCondition),tools};
   }
   private parseTools(value:unknown,catalog:ToolCatalogEntry[],missionPermission:PermissionLevel):PlannedTool[]{
     if(!Array.isArray(value))return[];
