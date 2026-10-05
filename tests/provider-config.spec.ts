@@ -14,6 +14,7 @@ if(config.mode!=="hybrid"||config.ollama.model!=="llama3.2:3b"||config.openai.mo
 const summary=providerSummary(config);
 if(summary.openai.configured!==true||summary.openai.apiKey!==undefined)throw new Error("Provider summary leaked credentials.");
 const runtime=configureProviders(config);
-if(runtime.models.find("chat").length!==2)throw new Error("Expected local and cloud chat models.");
+if(!runtime.models.find("chat").some(model=>model.provider==="ollama"))throw new Error("Expected an Ollama chat model.");
+if(!runtime.models.find("chat").some(model=>model.provider==="openai"))throw new Error("Expected an OpenAI chat model.");
 if(runtime.providers.list().length!==2)throw new Error("Expected local and cloud providers.");
 console.log("Provider runtime configuration tests passed.");
