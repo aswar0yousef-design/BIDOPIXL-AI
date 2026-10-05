@@ -8,6 +8,7 @@ import {createGeminiProvider} from "../providers/gemini-provider.js";
 import {FreeCapacityProvider,freeProviderRuntimeName,type FreeCapacitySpec} from "../providers/free-capacity.js";
 import {FREE_LLM_DIRECTORY} from "../providers/free-llm-directory.js";
 import {localSecret} from "../security/local-secret-vault.js";
+import {loadBidopixlModelProfile} from "./bidopixl-model-profile.js";
 export type ProviderMode="local"|"cloud"|"hybrid";
 export interface ProviderRuntimeConfig{
  mode:ProviderMode;
@@ -38,7 +39,8 @@ function loadFreePool(env:NodeJS.ProcessEnv){
 export function loadProviderConfig(env:NodeJS.ProcessEnv=process.env):ProviderRuntimeConfig{
  const mode=(env.LAYANX_AI_MODE??"local") as ProviderMode;if(!["local","cloud","hybrid"].includes(mode))throw new Error("Invalid LAYANX_AI_MODE.");
  return{mode,
-  ollama:{enabled:env.OLLAMA_ENABLED!=="false",baseUrl:(env.OLLAMA_BASE_URL??"http://127.0.0.1:11434").replace(/\/$/,""),model:env.OLLAMA_MODEL??"llama3.2:3b",visionModel:env.OLLAMA_VISION_MODEL??"moondream:1.8b"},
+  ollama:{enabled:env.OLLAMA_ENABLED!=="false",baseUrl:(env.OLLAMA_BASE_URL??"http://127.0.0.1:11434").replace(/\/$/,""),model:env.OLLAMA_MODEL??loadBidopixlModelProfile(env).general,visionModel:env.OLLAMA_VISION_MODEL??""},
+  bidopixl:{...loadBidopixlModelProfile(env),cloudEnabled:env.BIDOPIXL_OLLAMA_CLOUD_ENABLED==="true"},
   openai:{enabled:env.OPENAI_ENABLED==="true",apiKey:env.OPENAI_API_KEY,baseUrl:env.OPENAI_BASE_URL??"https://api.openai.com/v1/responses",healthUrl:env.OPENAI_HEALTH_URL??"https://api.openai.com/v1/models",model:env.OPENAI_MODEL??"gpt-5.6-luna"},
   anthropic:{enabled:env.ANTHROPIC_ENABLED==="true",apiKey:env.ANTHROPIC_API_KEY,baseUrl:env.ANTHROPIC_BASE_URL??"https://api.anthropic.com/v1/messages",healthUrl:env.ANTHROPIC_HEALTH_URL??"https://api.anthropic.com/v1/models",model:env.ANTHROPIC_MODEL??"claude-sonnet-4-5"},
   gemini:{enabled:env.GEMINI_ENABLED==="true",apiKey:env.GEMINI_API_KEY,baseUrl:env.GEMINI_BASE_URL??"https://generativelanguage.googleapis.com/v1beta",healthUrl:env.GEMINI_HEALTH_URL??"https://generativelanguage.googleapis.com/v1beta/models",model:env.GEMINI_MODEL??"gemini-3.6-flash"},
@@ -47,8 +49,24 @@ export function loadProviderConfig(env:NodeJS.ProcessEnv=process.env):ProviderRu
 }
 export function configureProviders(config=loadProviderConfig(),models=new ModelRegistry(),providers=new ModelProviderRegistry()){
  const allowLocal=config.mode==="local"||config.mode==="hybrid";const allowCloud=config.mode==="cloud"||config.mode==="hybrid";
- if(config.ollama.enabled&&allowLocal){providers.register(createOllamaProvider({baseUrl:config.ollama.baseUrl}));models.register({id:config.ollama.model,provider:"ollama",capabilities:["chat","reasoning","coding"],local:true,enabled:true,priority:1});
-   if(config.ollama.visionModel&&config.ollama.visionModel!==config.ollama.model)models.register({id:config.ollama.visionModel,provider:"ollama",capabilities:["vision"],local:true,enabled:true,priority:2,tags:["computer-use","vision"]});}
+ if(config.ollama.enabled&&allowLocal){
+   providers.register(createOllamaProvider({baseUrl:config.ollama.baseUrl,autoSelectInstalledModel:true}));
+   const localModels=[
+    {id:config.bidopixl.general,capabilities:["chat","reasoning"] as const,priority:1,qualityScore:78,latencyClass:"balanced" as const,tags:["bidopixl","general","local"]},
+    {id:config.bidopixl.coding,capabilities:["chat","coding"] as const,priority:2,qualityScore:84,latencyClass:"balanced" as const,tags:["bidopixl","coding","local"]},
+    {id:config.bidopixl.advancedCoding,capabilities:["chat","reasoning","coding"] as const,priority:3,qualityScore:92,latencyClass:"slow" as const,tags:["bidopixl","coding","advanced","local"]},
+    {id:config.bidopixl.fast,capabilities:["chat","coding"] as const,priority:4,qualityScore:62,latencyClass:"fast" as const,tags:["bidopixl","fast","local"]}
+   ];
+   for(const model of localModels)models.register({id:model.id,provider:"ollama",capabilities:[...model.capabilities],local:true,enabled:true,priority:model.priority,qualityScore:model.qualityScore,latencyClass:model.latencyClass,tags:model.tags});
+   if(config.bidopixl.cloudEnabled&&allowCloud){
+    const cloudModels=[
+     {id:config.bidopixl.cloudCoding,capabilities:["chat","reasoning","coding"] as const,priority:20,qualityScore:94,latencyClass:"balanced" as const,tags:["bidopixl","coding","advanced","cloud"]},
+     {id:config.bidopixl.cloudReasoning,capabilities:["chat","reasoning"] as const,priority:21,qualityScore:94,latencyClass:"balanced" as const,tags:["bidopixl","reasoning","cloud"]}
+    ];
+    for(const model of cloudModels)models.register({id:model.id,provider:"ollama",capabilities:[...model.capabilities],local:false,enabled:true,priority:model.priority,qualityScore:model.qualityScore,latencyClass:model.latencyClass,tags:model.tags});
+   }
+   if(config.ollama.visionModel&&config.ollama.visionModel!==config.ollama.model)models.register({id:config.ollama.visionModel,provider:"ollama",capabilities:["vision"],local:true,enabled:true,priority:5,tags:["computer-use","vision"]});
+  }
  let priority=10;
  if(config.openai.enabled&&allowCloud&&config.openai.apiKey){providers.register(createOpenAIProvider({apiKey:config.openai.apiKey,baseUrl:config.openai.baseUrl,healthUrl:config.openai.healthUrl}));models.register({id:config.openai.model,provider:"openai",capabilities:["chat","reasoning","coding","vision"],local:false,enabled:true,priority:priority++});}
  if(config.anthropic.enabled&&allowCloud&&config.anthropic.apiKey){providers.register(createAnthropicProvider({apiKey:config.anthropic.apiKey,baseUrl:config.anthropic.baseUrl,healthUrl:config.anthropic.healthUrl}));models.register({id:config.anthropic.model,provider:"anthropic",capabilities:["chat","reasoning","coding","vision"],local:false,enabled:true,priority:priority++});}
@@ -68,6 +86,7 @@ export function configureProviders(config=loadProviderConfig(),models=new ModelR
 export function providerSummary(config=loadProviderConfig()){
  return{mode:config.mode,
   ollama:{enabled:config.ollama.enabled,baseUrl:config.ollama.baseUrl,model:config.ollama.model,visionModel:config.ollama.visionModel},
+  bidopixl:{...config.bidopixl,cloudEnabled:config.bidopixl.cloudEnabled},
   openai:{enabled:config.openai.enabled,configured:Boolean(config.openai.apiKey),baseUrl:config.openai.baseUrl,healthUrl:config.openai.healthUrl,model:config.openai.model},
   anthropic:{enabled:config.anthropic.enabled,configured:Boolean(config.anthropic.apiKey),baseUrl:config.anthropic.baseUrl,healthUrl:config.anthropic.healthUrl,model:config.anthropic.model},
   gemini:{enabled:config.gemini.enabled,configured:Boolean(config.gemini.apiKey),baseUrl:config.gemini.baseUrl,healthUrl:config.gemini.healthUrl,model:config.gemini.model},
