@@ -28,6 +28,12 @@ if(missingExecution.verified||!missingExecution.failures.includes("Mission has n
 const failedExecution=verifier.verify(mission({steps:[{id:"execute",description:"Execute requested action",status:"failed"}]}),{ok:true},[]);
 if(failedExecution.verified||!failedExecution.failures.includes("Execution step is not completed."))throw new Error("Failed execution step was accepted.");
 
+const runtimeRetrieve=verifier.verify(mission(),{ok:true,tool:"runtime.status",data:{ready:true,providers:[{provider:"ollama"}]}},["Successfully retrieve and return the current runtime status information using the `runtime.status` tool."]);
+if(!runtimeRetrieve.verified||runtimeRetrieve.failures.length!==0)throw new Error("Runtime status retrieval criterion was not accepted.");
+
+const runtimeHealth=verifier.verify(mission(),{ok:true,tool:"runtime.status",data:{ready:true,providers:[{provider:"ollama"}]}},["The observed output confirms the operational health and configured providers."]);
+if(!runtimeHealth.verified||runtimeHealth.failures.length!==0)throw new Error("Runtime health/providers criterion was not accepted.");
+
 const toolSuccess=verifier.verify(mission(),{ok:true,tool:"runtime.status",ready:true},["The call to runtime.status should execute successfully."]);
 if(!toolSuccess.verified||toolSuccess.failures.length!==0)throw new Error("Successful runtime.status tool call was not accepted.");
 
