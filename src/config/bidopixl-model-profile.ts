@@ -18,7 +18,7 @@ function envModel(env:NodeJS.ProcessEnv,name:string,fallback:string){return (env
 export function loadBidopixlModelProfile(env:NodeJS.ProcessEnv=process.env):BidopixlModelProfile{
   return{
     fast:envModel(env,"BIDOPIXL_FAST_MODEL",DEFAULT_BIDOPIXL_MODEL_PROFILE.fast),
-    general:envModel(env,"BIDOPIXL_GENERAL_MODEL",DEFAULT_BIDOPIXL_MODEL_PROFILE.general),
+    general:envModel(env,"BIDOPIXL_GENERAL_MODEL",envModel(env,"OLLAMA_MODEL",DEFAULT_BIDOPIXL_MODEL_PROFILE.general)),
     coding:envModel(env,"BIDOPIXL_CODING_MODEL",DEFAULT_BIDOPIXL_MODEL_PROFILE.coding),
     advancedCoding:envModel(env,"BIDOPIXL_ADVANCED_CODING_MODEL",DEFAULT_BIDOPIXL_MODEL_PROFILE.advancedCoding),
     cloudCoding:envModel(env,"BIDOPIXL_CLOUD_CODING_MODEL",DEFAULT_BIDOPIXL_MODEL_PROFILE.cloudCoding),
